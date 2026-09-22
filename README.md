@@ -2,7 +2,7 @@
 
 A **staging repository** for a local file-conversion routing skill.
 
-`SKILL.md` is the skill itself: a decision guide that routes any media/document
+`SKILL.md` is the skill itself: a document-first decision guide that routes a
 conversion task to the correct tool on this machine, with verified capability
 limits and known traps.
 
@@ -14,16 +14,20 @@ automatically.
 
 ## What it covers
 
+Documents are the primary focus.
+
 | Tool | Role |
 | --- | --- |
-| FFmpeg | video & audio |
-| ImageMagick | bitmap images |
-| Pandoc | document format interconversion |
-| LibreOffice | Office fidelity / batch → PDF |
-| MarkItDown | anything → Markdown, audio → transcript |
-| Typst | Pandoc's PDF engine (no LaTeX on this machine) |
-| Python (Pillow / PyMuPDF / pdfplumber / pypdf) | PDF rasterizing, text, tables, scripting |
-| 7-Zip | archives |
+| Pandoc | document format ↔ format (md, docx, html, epub, odt, rst, latex, pptx) |
+| LibreOffice | Office fidelity and batch → PDF |
+| MarkItDown | anything → Markdown; audio → transcript |
+| Typst | Pandoc's PDF engine (there is no LaTeX on this machine) |
+| Python (PyMuPDF / pdfplumber / pypdf) | PDF → text, tables, images; merge/split |
+| ImageMagick | images (secondary) |
+| FFmpeg | audio/video (secondary) |
+
+Deliberately **out of scope**: general archives, build toolchains, and anything
+that is not a conversion.
 
 ## Install later
 
@@ -47,13 +51,14 @@ The tool paths, versions, and capability claims in `SKILL.md` were verified on
 2026-09-22. Re-verify after upgrading any tool:
 
 ```powershell
-ffmpeg -version; pandoc --version; magick -version; markitdown -v; typst --version
-magick -list format | Select-String -Pattern 'HEIC|AVIF|WEBP|PSD|SVG|DNG'
+pandoc --version; markitdown -v; typst --version; magick -version; ffmpeg -version
+magick -list format | Select-String -Pattern 'HEIC|AVIF|WEBP|PSD|SVG|DNG|PDF'
+pandoc --list-output-formats
 ```
 
 ## Related notes
 
 - Tools are installed portably under `D:\Tools\` and exposed via the **user** PATH.
 - Reinstalling FFmpeg is what restores MarkItDown's audio transcription.
-- This machine has **no Ghostscript** and **no LaTeX**; the skill's routing
-  depends on those absences.
+- This machine has **no Ghostscript** and **no LaTeX**; the routing in the skill
+  depends on both absences.
