@@ -24,11 +24,11 @@ Reply in the same language the user uses. Commands and code stay in English.
 | Markdown → a polished PDF | **Pandoc + Typst** |
 | An archive | **7-Zip** |
 
-When two could work, prefer the one higher in this list only if the format matches; otherwise follow the table. See §3 for the full decision table.
+When two could work, prefer the one higher in this list only if the format matches; otherwise follow the table. See §2 for the full decision table.
 
 ## 1. Tool inventory on this machine
 
-All four "big" tools are installed **portable-style on the D: drive** and exposed via the **user** `PATH`. Versions verified 2026-09-22.
+The main conversion tools are installed **portable-style on the D: drive** (`D:\Tools\`) and exposed via the **user** `PATH`. MarkItDown is a `uv` tool and Typst is a WinGet package, so those two live under `%USERPROFILE%`. Versions verified 2026-09-22.
 
 | Tool | Executable | Version | Notes |
 | --- | --- | --- | --- |
@@ -73,13 +73,15 @@ MAGICK_HOME = D:\Tools\ImageMagick
 | Inspect media | `ffprobe -hide_banner -show_format -show_streams in.mkv` |
 | Silence/strip metadata | `-map_metadata -1` |
 
+Add **`-y`** to every command run from a script or batch loop — otherwise FFmpeg stops and waits for an overwrite confirmation and the job hangs. Add `-hide_banner -loglevel error` to keep output clean.
+
 ### Images — ImageMagick (`magick`)
 
 | Task | Command |
 | --- | --- |
 | Format convert | `magick in.heic out.jpg` |
 | Resize (50%) | `magick in.png -resize 50% out.webp` |
-| Resize to fit box | `magick in.png -resize 1920x1080\> out.jpg` |
+| Resize to fit box, shrink only | `magick in.png -resize "1920x1080>" out.jpg` |
 | Crop | `magick in.png -crop 800x600+100+50 +repage out.png` |
 | Rotate / flip | `magick in.png -rotate 90 out.png` |
 | Quality / strip metadata | `magick in.png -quality 85 -strip out.jpg` |
@@ -90,20 +92,22 @@ MAGICK_HOME = D:\Tools\ImageMagick
 
 **Verified format support (this build):**
 
-- Read **and** write: `AVIF`, `WEBP`, `JXL`, `PSD`, `TIFF`, `SVG` (RSVG 2.40.20), `MSVG`, `PDF`, `EPS`, `PNG`, `JPEG`, `MP4`
+- Read **and** write: `AVIF`, `WEBP`, `JXL`, `PSD`, `TIFF`, `SVG` (RSVG 2.40.20), `MSVG`, `EPS`, `PNG`, `JPEG`, `MP4`
+- **Write-only**: `PDF` — `magick in.png out.pdf` works, but **reading** a PDF fails (it shells out to `gswin64c.exe`, which is absent). Never use ImageMagick to rasterize a PDF; use PyMuPDF.
 - **Read-only** (`r--`): `HEIC`, `HEIF` (libheif 1.23.2), `DNG`, `CR2`, `NEF`, `ARW` (LibRaw)
 - So `HEIC → JPG` works; **`JPG → HEIC` does not**. Same for camera RAW: decode only.
+- **Quote geometry modifiers containing `>` or `<`** in PowerShell: `-resize "1920x1080>"`. A backslash (`\>`) is bash syntax and is passed to ImageMagick verbatim here.
 
 ### PDF — Python, not ImageMagick
 
-ImageMagick lists `PDF rw+`, but **Ghostscript is NOT installed**, so PDF *rasterization* via ImageMagick will fail. Use Python instead.
+ImageMagick lists `PDF rw+`, but **Ghostscript is NOT installed**, so it can only *write* a PDF, never *read* one. Rasterizing a PDF with ImageMagick fails. Use Python instead.
 
 | Task | Command |
 | --- | --- |
 | PDF → images (per page) | `D:\Python\python.exe -c "import pymupdf; d=pymupdf.open('in.pdf'); [p.get_pixmap(dpi=200).save(f'p{i+1}.png') for i,p in enumerate(d)]"` |
 | PDF → text | `D:\Python\python.exe -c "import pymupdf; d=pymupdf.open('in.pdf'); print(chr(10).join(p.get_text() for p in d))"` |
 | PDF tables | `D:\Python\python.exe -c "import pdfplumber; pdf=pdfplumber.open('in.pdf'); print(pdf.pages[0].extract_table())"` |
-| Merge / split / rotate / encrypt | `pypdf` (`PdfWriter` / `PdfReader`) |
+| Merge / split / rotate / encrypt | `D:\Python\python.exe -c "from pypdf import PdfWriter; w=PdfWriter(); w.append('a.pdf'); w.append('b.pdf'); w.write('merged.pdf')"` |
 
 ### Documents — Pandoc
 
@@ -127,8 +131,10 @@ ImageMagick lists `PDF rw+`, but **Ghostscript is NOT installed**, so PDF *raste
 | DOCX → PDF | `soffice --headless --convert-to pdf --outdir . in.docx` |
 | XLSX → CSV | `soffice --headless --convert-to csv --outdir . in.xlsx` |
 | PPTX → PDF | `soffice --headless --convert-to pdf --outdir . in.pptx` |
-| Batch (whole folder) | `Get-ChildItem *.docx \| ForEach-Object { soffice --headless --convert-to pdf --outdir . $_.FullName }` |
+| Batch (whole folder) | `soffice --headless --convert-to pdf --outdir . *.docx` — one process for all files |
 | Pick a filter explicitly | `--convert-to "pdf:writer_pdf_Export"` |
+
+**Prefer one `soffice` call with many files over a PowerShell `ForEach-Object` loop.** Each `soffice` start-up costs ~6 s and only one instance can hold the user profile at a time, so a loop is dramatically slower.
 
 Use LibreOffice when **Office fidelity matters** or when converting **many Office files at once**. Use Pandoc instead when the goal is Markdown/structured text.
 
@@ -139,7 +145,7 @@ Use LibreOffice when **Office fidelity matters** or when converting **many Offic
 | Convert to Markdown | `markitdown in.pdf -o out.md` |
 | Print to stdout | `markitdown in.docx` |
 | Audio → transcript | `markitdown in.mp3` |
-| From stdin | `Get-Content in.pdf -Raw \| markitdown` |
+| From stdin | `cmd /c "markitdown < in.pdf"` — **not** `Get-Content -Raw \| markitdown`, which corrupts binary through PowerShell's text pipeline |
 
 Best for: clean PDF/DOCX/PPTX/XLSX/HTML → Markdown to feed an LLM. **Weak on tables** (pdfminer-based). For table-heavy or scanned PDFs, prefer PyMuPDF/pdfplumber, or a cloud OCR route.
 
