@@ -50,6 +50,7 @@ pandoc in.md    -o out.pdf  --pdf-engine=typst           # PDF: engine is mandat
 pandoc in.docx  -o out.md   --extract-media=./media       # docx → md, pull images out
 pandoc in.docx  -o out.html -s                            # -s = standalone
 pandoc in.html  -o out.md
+pandoc in.html  -o out.pdf --pdf-engine=typst            # web page → PDF
 pandoc in.tex   -o out.docx
 pandoc in.csv   -o out.md
 pandoc in.odt   -o out.docx
@@ -77,19 +78,23 @@ soffice --headless --convert-to docx --outdir . in.odt
 soffice --headless --convert-to "pdf:writer_pdf_Export" --outdir . in.docx
 ```
 
-- Prefer **one call with many files** over a `ForEach-Object` loop — each start-up costs ~6 s and the user profile is single-instance, so a loop is dramatically slower.
-- Reach for LibreOffice when **layout fidelity matters** (forms, styles, footnotes, tracked changes) or when converting **many Office files**. Reach for Pandoc when you want Markdown or structured text.
+- **Batch in one call, never in a loop.** Measured here, 6 DOCX → PDF: one call **8.6 s**, a `ForEach-Object` loop **40–70 s**. Each start-up costs ~6 s and the user profile is single-instance.
+- **`--convert-to csv` on a spreadsheet exports only the FIRST sheet.** The other sheets are dropped without warning. For every sheet, use `markitdown` (§2.3), or convert to `pdf` / `html`, which both carry all sheets.
+- soffice **overwrites** an existing output file without asking.
+- Reach for LibreOffice when **layout fidelity matters** (forms, styles, footnotes, tracked changes). Reach for Pandoc when you want Markdown or structured text.
 
 ### 2.3 MarkItDown — anything → Markdown
 
 ```powershell
 markitdown in.docx -o out.md     # DOCX / PDF / PPTX / XLSX / HTML → Markdown
+markitdown in.xlsx               # every sheet → a `## SheetName` section + GFM table
 markitdown in.pdf                # to stdout
 cmd /c "markitdown < in.docx"    # from stdin
 ```
 
 - Best for clean PDF/DOCX/PPTX/XLSX/HTML → Markdown to hand to an LLM.
-- **Weak on tables** (pdfminer-based). For table-heavy or scanned PDFs use pdfplumber, or extract with PyMuPDF first.
+- **XLSX is the strongest case**: no sheet is lost, each becomes a `## SheetName` heading with a Markdown table. This is the best multi-sheet spreadsheet export on this machine.
+- On **text-layer** PDFs, pdfplumber gives better tables than MarkItDown. On **scanned** PDFs neither works — there is no text layer to read (§6).
 - **No direct PDF → DOCX anywhere on this machine.** The workaround is two steps: `markitdown in.pdf -o tmp.md` then `pandoc tmp.md -o out.docx`.
 
 ### 2.4 Typst — the PDF engine
@@ -130,8 +135,11 @@ magick in.png -resize "1920x1080>" out.jpg        # quote: `>` is a geometry mod
 magick in.png -crop 800x600+100+50 +repage out.png
 magick in.png -quality 85 -strip out.jpg
 magick in.png watermark.png -gravity southeast -composite out.png
-magick montage *.jpg -tile 4x -geometry +5+5 sheet.jpg
+magick montage *.jpg -tile 4x -geometry +5+5 sheet.jpg    # output name goes last
 magick identify -verbose in.png
+
+# scans → one multi-page PDF (PDF *write* works, even though reading does not)
+magick scan1.png scan2.png -page A4 scans.pdf
 ```
 
 Format support in this build:
@@ -165,7 +173,9 @@ The one document-adjacent use: **audio → text**, via `markitdown` (§2.3), whi
 5. **`python` is a Store stub.** Use `D:\Python\python.exe`.
 6. **PATH changes need a new terminal.**
 7. **MarkItDown needs FFmpeg + network** for audio only.
-8. **LibreOffice was unpacked with `msiexec /a`** — no registry entries, no file associations, no uninstaller ("uninstall" = delete `D:\Tools\LibreOffice`). A harmless `<prefix>` warning prints on each run.
+8. **`soffice --convert-to csv` exports only the first sheet** of a workbook, silently dropping the rest.
+9. **`soffice` overwrites existing output** without asking — a batch run can clobber files.
+10. **LibreOffice was unpacked with `msiexec /a`** — no registry entries, no file associations, no uninstaller ("uninstall" = delete `D:\Tools\LibreOffice`). A harmless `<prefix>` warning prints on each run.
 
 ## 6. Gaps
 
