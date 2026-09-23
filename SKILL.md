@@ -68,6 +68,19 @@ pandoc --list-output-formats
 
 **PDF output always needs `--pdf-engine=typst`.** There is no LaTeX on this machine.
 
+**Markdown dialects.** Pandoc is the only tool here that reads Markdown, so name the dialect when it matters:
+
+```powershell
+pandoc in.docx -t gfm -o out.md          # GitHub-flavoured: tables, task lists, strikethrough
+pandoc in.md   -f commonmark -o out.html # strict CommonMark
+pandoc in.md   -f markdown_strict -o out.rst
+pandoc in.md   -f markdown_mmd  -o out.md
+```
+
+`markdown_strict` **drops Pandoc's extensions** (footnotes, definition lists, grid tables). The default `markdown` output is not what GitHub renders either — to get Markdown that GitHub accepts, write `-t gfm` explicitly.
+
+There is **no dedicated Markdown tool** on this machine: no formatter, linter, previewer, `cmark` or `mdbook`. Pandoc covers both directions.
+
 ### 2.2 LibreOffice — Office fidelity and batch
 
 ```powershell
