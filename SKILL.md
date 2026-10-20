@@ -1,6 +1,6 @@
 ---
 name: file-conversion-toolkit
-description: Convert documents and files locally, document-first, on Windows or Fedora Linux. Covers DOCX, XLSX, PPTX, PDF, Markdown, HTML, EPUB, ODT, RST and LaTeX via Pandoc, LibreOffice, MarkItDown, Typst, poppler, Ghostscript and Python (PyMuPDF / pdfplumber / pypdf); also images via ImageMagick and audio/video via FFmpeg. Use this skill whenever the user wants to convert, transform, export or reformat a document or file, asks which tool to use for a conversion, or says 转格式 / 转换 / 转成 / 导出 / 批量转换 / 把 PDF 转成 / 把 Word 转成. SKIP for pure cloud/API conversions.
+description: Convert documents and files locally, document-first, on Windows or Fedora Linux (DOCX, XLSX, PPTX, PDF, Markdown, HTML, EPUB, ODT, RST, LaTeX, images, audio and video). Use whenever the user wants to convert, transform, export or reformat a document or file, asks which tool to use for a conversion, or says 转格式 / 转换 / 转成 / 导出 / 批量转换. SKIP for pure cloud/API conversions.
 ---
 
 # Document & File Conversion
